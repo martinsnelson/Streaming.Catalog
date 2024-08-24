@@ -1,35 +1,39 @@
-﻿using Streaming.Catalog.Domain.Entity;
+﻿using FluentAssertions;
+using Streaming.Catalog.Domain.Entity;
 using Streaming.Catalog.Domain.Exceptions;
 
 namespace Streaming.Catalog.UnitTests.Domain.Entity.Category
 {
+    [Collection(nameof(CategoryTestFixture))]
     public class CategoryTest
     {
+
+        private readonly CategoryTestFixture _categoryTestFixture;
+
+        public CategoryTest(CategoryTestFixture categoryTestFixture) 
+            => _categoryTestFixture = categoryTestFixture;
+
         [Fact(DisplayName = nameof(ValidCategory))]
         [Trait("Domain", "Category - Aggregates")]
         public void ValidCategory() 
         {
             // Arrange
-            var validData = new 
-            {
-                Name = "Category name",
-                Description = "Description category"
-            };
+            var validCategory = _categoryTestFixture.GetValidCategory();
             var datetimeBefore = DateTime.Now;
 
             // Act
-            var category = new Catalog.Domain.Entity.Category(validData.Name, validData.Description);
-            var datetimeAfter = DateTime.Now;
+            var category = new Catalog.Domain.Entity.Category(validCategory.Name, validCategory.Description);
+            var datetimeAfter = DateTime.Now.AddSeconds(1);
 
             // Assert
-            Assert.NotNull(category);
-            Assert.Equal(validData.Name, category.Name);
-            Assert.Equal(validData.Description, category.Description);
-            Assert.NotEqual(default(Guid), category.Id);
-            Assert.NotEqual(default(DateTime), category.CreatedAt);
-            Assert.True(category.CreatedAt > datetimeBefore);
-            Assert.True(category.CreatedAt < datetimeAfter);
-            Assert.True(category.IsActive);
+            category.Should().NotBeNull();
+            category.Name.Should().Be(validCategory.Name);
+            category.Description.Should().Be(validCategory.Description);
+            category.Id.Should().NotBeEmpty();
+            category.CreatedAt.Should().NotBeSameDateAs(default(DateTime));
+            (category.CreatedAt > datetimeBefore).Should().BeTrue();
+            (category.CreatedAt < datetimeAfter).Should().BeTrue();
+            (category.IsActive).Should().BeTrue();
         }
 
 
@@ -40,21 +44,17 @@ namespace Streaming.Catalog.UnitTests.Domain.Entity.Category
         public void IsActive(bool isActive)
         {
             // Arrange
-            var validData = new
-            {
-                Name = "Category name",
-                Description = "Description category"
-            };
+            var validCategory = _categoryTestFixture.GetValidCategory();
             var datetimeBefore = DateTime.Now;
 
             // Act
-            var category = new Catalog.Domain.Entity.Category(validData.Name, validData.Description, isActive);
+            var category = new Catalog.Domain.Entity.Category(validCategory.Name, validCategory.Description, isActive);
             var datetimeAfter = DateTime.Now;
 
             // Assert
             Assert.NotNull(category);
-            Assert.Equal(validData.Name, category.Name);
-            Assert.Equal(validData.Description, category.Description);
+            Assert.Equal(validCategory.Name, category.Name);
+            Assert.Equal(validCategory.Description, category.Description);
             Assert.NotEqual(default(Guid), category.Id);
             Assert.NotEqual(default(DateTime), category.CreatedAt);
             Assert.True(category.CreatedAt > datetimeBefore);
@@ -70,7 +70,10 @@ namespace Streaming.Catalog.UnitTests.Domain.Entity.Category
         [InlineData("  ")]
         public void ErrorWhenNameIsEmpty(string? name) 
         {
-            Action action = () => new Catalog.Domain.Entity.Category(name!, "Description category");
+            var validCategory = _categoryTestFixture.GetValidCategory();
+
+
+            Action action = () => new Catalog.Domain.Entity.Category(name!, validCategory.Description);
             
             var exception = Assert.Throws<EntityValidationException>(action);
 
@@ -82,7 +85,9 @@ namespace Streaming.Catalog.UnitTests.Domain.Entity.Category
         [Trait("Domain", "Category - Aggregates")]
         public void ErrorWhenDescriptionIsNull()
         {
-            Action action = () => new Catalog.Domain.Entity.Category("Category Name", null!);
+            var validCategory = _categoryTestFixture.GetValidCategory();
+
+            Action action = () => new Catalog.Domain.Entity.Category(validCategory.Name, null!);
 
             var exception = Assert.Throws<EntityValidationException>(action);
 
@@ -97,7 +102,9 @@ namespace Streaming.Catalog.UnitTests.Domain.Entity.Category
         [InlineData("ca")]
         public void ErrorWhenNameIsLessThan3Characters(string invalidName) 
         {
-            Action action = () => new Catalog.Domain.Entity.Category(invalidName, "Category Description Ok");
+            var validCategory = _categoryTestFixture.GetValidCategory();
+
+            Action action = () => new Catalog.Domain.Entity.Category(invalidName, validCategory.Description);
 
             var exception = Assert.Throws<EntityValidationException>(action);
 
@@ -136,15 +143,11 @@ namespace Streaming.Catalog.UnitTests.Domain.Entity.Category
         public void Activate()
         {
             // Arrange
-            var validData = new
-            {
-                Name = "Category name",
-                Description = "Description category"
-            };
+            var validCategory = _categoryTestFixture.GetValidCategory();
             var datetimeBefore = DateTime.Now;
 
             // Act
-            var category = new Catalog.Domain.Entity.Category(validData.Name, validData.Description, false);
+            var category = new Catalog.Domain.Entity.Category(validCategory.Name, validCategory.Description, false);
             category.Activate();
             // Assert
             Assert.True(category.IsActive);
@@ -156,15 +159,11 @@ namespace Streaming.Catalog.UnitTests.Domain.Entity.Category
         public void Deactivate()
         {
             // Arrange
-            var validData = new
-            {
-                Name = "Category name",
-                Description = "Description category"
-            };
+            var validCategory = _categoryTestFixture.GetValidCategory();
             var datetimeBefore = DateTime.Now;
 
             // Act
-            var category = new Catalog.Domain.Entity.Category(validData.Name, validData.Description, true);
+            var category = new Catalog.Domain.Entity.Category(validCategory.Name, validCategory.Description, true);
             category.Deactivate();
             // Assert
             Assert.False(category.IsActive);
@@ -175,13 +174,13 @@ namespace Streaming.Catalog.UnitTests.Domain.Entity.Category
         [Trait("Domain", "Category - Aggregates")]
         public void Update() 
         {
-            var category = new Catalog.Domain.Entity.Category("Category Name", "Category Description");
+            var validCategory = _categoryTestFixture.GetValidCategory();
             var newValues = new { Name = "New Name", Description = "New Description" };
 
-            category.Update(newValues.Name, newValues.Description);
+            validCategory.Update(newValues.Name, newValues.Description);
 
-            Assert.Equal(newValues.Name, category.Name);
-            Assert.Equal(newValues.Description, category.Description);
+            Assert.Equal(newValues.Name, validCategory.Name);
+            Assert.Equal(newValues.Description, validCategory.Description);
         }
 
 
@@ -189,14 +188,14 @@ namespace Streaming.Catalog.UnitTests.Domain.Entity.Category
         [Trait("Domain", "Category - Aggregates")]
         public void UpdateOnlyName()
         {
-            var category = new Catalog.Domain.Entity.Category("Category Name", "Category Description");
+            var validCategory = _categoryTestFixture.GetValidCategory();
             var newValues = new { Name = "New Name"};
-            var currenteDescription = category.Description;
+            var currenteDescription = validCategory.Description;
 
-            category.Update(newValues.Name);
+            validCategory.Update(newValues.Name);
 
-            Assert.Equal(newValues.Name, category.Name);
-            Assert.Equal(currenteDescription, category.Description);
+            Assert.Equal(newValues.Name, validCategory.Name);
+            Assert.Equal(currenteDescription, validCategory.Description);
         }
 
 
@@ -207,9 +206,9 @@ namespace Streaming.Catalog.UnitTests.Domain.Entity.Category
         [InlineData("  ")]
         public void UpdateErrorWhenNameIsEmpty(string? name)
         {
-            var category = new Catalog.Domain.Entity.Category("Category Name", "Category Description");
+            var validCategory = _categoryTestFixture.GetValidCategory();
             
-            Action action = () => category.Update(name!);
+            Action action = () => validCategory.Update(name!);
             var exception = Assert.Throws<EntityValidationException>(action);
 
             Assert.Equal("Name should not be empty or null", exception.Message);
@@ -224,9 +223,9 @@ namespace Streaming.Catalog.UnitTests.Domain.Entity.Category
         [InlineData("ca")]
         public void UpdateErrorWhenNameIsLessThan3Characters(string invalidName)
         {
-            var category = new Catalog.Domain.Entity.Category("Category Name", "Category Description");
+            var validCategory = _categoryTestFixture.GetValidCategory();
 
-            Action action = () => category.Update(invalidName);
+            Action action = () => validCategory.Update(invalidName);
             var exception = Assert.Throws<EntityValidationException>(action);
 
             Assert.Equal("Name should be at leats 3 characters long", exception.Message);
@@ -237,10 +236,10 @@ namespace Streaming.Catalog.UnitTests.Domain.Entity.Category
         [Trait("Domain", "Category - Aggregates")]
         public void UpdateErrorWhenNameIsGreaterThan255Characters()
         {
-            var category = new Catalog.Domain.Entity.Category("Category Name", "Category Description");
+            var validCategory = _categoryTestFixture.GetValidCategory();
 
             var invalidName = String.Join(null, Enumerable.Range(0, 256).Select(_ => "a").ToArray());
-            Action action = () => category.Update(invalidName);
+            Action action = () => validCategory.Update(invalidName);
 
             var exception = Assert.Throws<EntityValidationException>(action);
 
@@ -252,10 +251,10 @@ namespace Streaming.Catalog.UnitTests.Domain.Entity.Category
         [Trait("Domain", "Category - Aggregates")]
         public void UpdateErrorWhenDescriptionIsGreaterThan10_000Characters()
         {
-            var category = new Catalog.Domain.Entity.Category("Category Name", "Category Description");
+            var validCategory = _categoryTestFixture.GetValidCategory();
 
             var invalidDescription = String.Join(null, Enumerable.Range(0, 10_001).Select(_ => "a").ToArray());
-            Action action = () => category.Update("Category New Name", invalidDescription);
+            Action action = () => validCategory.Update("Category New Name", invalidDescription);
 
             var exception = Assert.Throws<EntityValidationException>(action);
 
